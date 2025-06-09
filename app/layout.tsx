@@ -1,11 +1,14 @@
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
+import { NavigationMenu } from "./component/navigationMenu";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+	return (
+		<html lang="en">
+			<body>
+				<header style={{ position: "sticky", top: 0, zIndex: 100, background: "#fff" }}>
+					<NavigationMenu />
+				</header>
+				<main>{children}</main>
+			</body>
+		</html>
+	);
 }
