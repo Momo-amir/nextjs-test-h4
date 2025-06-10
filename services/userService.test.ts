@@ -1,106 +1,113 @@
-import { jest } from "@jest/globals";
-import type { Database } from "sqlite";
-import * as dbModule from "../lib/db";
-import * as bcrypt from "bcryptjs";
-import { getUserByUsername, createUser, countUsers, getUserById, enableTwoFactor, updateUserPassword, deleteUser } from "./userService";
+import { Database } from "sqlite";
+import { connectToDatabase } from "../lib/db";
+import { compare, hash } from "bcryptjs";
 
-// replace auto‐mock with a manual factory so connectToDatabase is a jest.fn()
-// jest.mock("../lib/db", () => ({
-//   connectToDatabase: jest.fn(),
-// }));
-jest.mock("../lib/db"); // auto-mock the module
+import * as userService from "../services/userService";
 
-jest.mock("bcryptjs");
+// mock sqlite connection
+jest.mock("../lib/db", () => ({
+	connectToDatabase: jest.fn(),
+}));
+// mock bcrypt methods
+jest.mock("bcryptjs", () => ({
+	compare: jest.fn(),
+	hash: jest.fn(),
+}));
 
-describe("userService", () => {
-	// now typed as a Jest‐mocked sqlite Database
-	let mockDb: jest.Mocked<Database>;
+// our fake sqlite DB
+const mockDb: Partial<Database> = {
+	get: jest.fn(),
+	run: jest.fn(),
+};
 
-	beforeEach(() => {
-		// build a minimal mockDb object
-		mockDb = {
-			get: jest.fn(),
-			run: jest.fn(),
-			// you can add other methods here as needed...
-		} as unknown as jest.Mocked<Database>;
+beforeEach(() => {
+	jest.clearAllMocks();
+	(connectToDatabase as jest.Mock).mockResolvedValue(mockDb as Database);
+});
 
-		// spy on and mock the real connectToDatabase
-		jest.spyOn(dbModule, "connectToDatabase").mockResolvedValue(mockDb);
-
-		(bcrypt.compare as jest.Mock).mockReset();
-		(bcrypt.hash as jest.Mock).mockReset();
+test("getUserByUsername calls db.get with correct query", async () => {
+	(mockDb.get as jest.Mock).mockResolvedValue({
+		id: 1,
+		username: "john",
+		password: "hashed",
+		fullName: "John Doe",
+		role: "user",
 	});
 
-	test("getUserByUsername calls db.get with correct query", async () => {
-		const fakeUser = {
-			id: 1,
-			username: "u",
-			password: "p",
-			fullName: "n",
-			role: "user",
-			twoFactorEnabled: false,
-			twoFactorSecret: null,
-		};
-		mockDb.get.mockResolvedValue(fakeUser);
-		const result = await getUserByUsername("u");
-		expect(mockDb.get).toHaveBeenCalledWith("SELECT * FROM users WHERE username = ?", "u");
-		expect(result).toEqual(fakeUser);
+	const user = await userService.getUserByUsername("john");
+	expect(mockDb.get).toHaveBeenCalledWith("SELECT * FROM users WHERE username = ?", "john");
+	expect(user?.username).toBe("john");
+});
+
+test("createUser inserts and returns lastID", async () => {
+	(mockDb.run as jest.Mock).mockResolvedValue({ lastID: 42 });
+	const newId = await userService.createUser("alice", "pwHash", "admin", "Alice A");
+	expect(mockDb.run).toHaveBeenCalledWith("INSERT INTO users (username, password, role, fullname) VALUES (?, ?, ?, ?)", "alice", "pwHash", "admin", "Alice A");
+	expect(newId).toBe(42);
+});
+
+test("countUsers returns count from db", async () => {
+	(mockDb.get as jest.Mock).mockResolvedValue({ count: 7 });
+	const cnt = await userService.countUsers();
+	expect(mockDb.get).toHaveBeenCalledWith("SELECT COUNT(*) AS count FROM users");
+	expect(cnt).toBe(7);
+});
+
+test("getUserById queries correct fields", async () => {
+	const fake = {
+		id: 2,
+		username: "bob",
+		fullName: "Bob B",
+		password: "hpwd",
+		role: "user",
+		twoFactorEnabled: 0,
+		twoFactorSecret: null,
+	};
+	(mockDb.get as jest.Mock).mockResolvedValue(fake);
+
+	const user = await userService.getUserById(2);
+	expect(mockDb.get).toHaveBeenCalledWith(
+		`SELECT id, username, fullName, password, role,
+            twoFactorEnabled, twoFactorSecret
+     FROM users
+     WHERE id = ?`,
+		2
+	);
+	expect(user).toEqual(fake);
+});
+
+test("enableTwoFactor updates twoFactor fields", async () => {
+	await userService.enableTwoFactor(5, "SECRET123");
+	expect(mockDb.run).toHaveBeenCalledWith(`UPDATE users SET twoFactorEnabled = 1, twoFactorSecret = ? WHERE id = ?`, "SECRET123", 5);
+});
+
+describe("updateUserPassword", () => {
+	const userRec = { id: 3, password: "oldHash" };
+
+	it("throws when user not found", async () => {
+		(mockDb.get as jest.Mock).mockResolvedValue(undefined);
+		await expect(userService.updateUserPassword(3, "old", "new")).rejects.toThrow("User not found");
 	});
 
-	test("createUser inserts and returns lastID", async () => {
-		mockDb.run.mockResolvedValue({ lastID: 42 });
-		const id = await createUser("u", "h", "admin", "Name");
-		expect(mockDb.run).toHaveBeenCalledWith("INSERT INTO users (username, password, role, fullname) VALUES (?, ?, ?, ?)", "u", "h", "admin", "Name");
-		expect(id).toBe(42);
+	it("throws when current password is wrong", async () => {
+		(mockDb.get as jest.Mock).mockResolvedValue(userRec);
+		(compare as jest.Mock).mockResolvedValue(false);
+		await expect(userService.updateUserPassword(3, "bad", "new")).rejects.toThrow("Current password is incorrect");
+		expect(compare).toHaveBeenCalledWith("bad", "oldHash");
 	});
 
-	test("countUsers returns count from db", async () => {
-		mockDb.get.mockResolvedValue({ count: 7 });
-		const cnt = await countUsers();
-		expect(mockDb.get).toHaveBeenCalledWith("SELECT COUNT(*) AS count FROM users");
-		expect(cnt).toBe(7);
+	it("updates password when compare passes", async () => {
+		(mockDb.get as jest.Mock).mockResolvedValue(userRec);
+		(compare as jest.Mock).mockResolvedValue(true);
+		(hash as jest.Mock).mockResolvedValue("newHash");
+		await userService.updateUserPassword(3, "old", "newPwd");
+		expect(compare).toHaveBeenCalledWith("old", "oldHash");
+		expect(hash).toHaveBeenCalledWith("newPwd", 10);
+		expect(mockDb.run).toHaveBeenCalledWith(`UPDATE users SET password = ? WHERE id = ?`, "newHash", 3);
 	});
+});
 
-	test("getUserById queries correct fields", async () => {
-		const fake = { id: 1 };
-		mockDb.get.mockResolvedValue(fake);
-		const u = await getUserById(1);
-		const expectedSQL = expect.stringContaining("SELECT id, username, fullName, password, role");
-		expect(mockDb.get).toHaveBeenCalledWith(expectedSQL, 1);
-		expect(u).toBe(fake);
-	});
-
-	test("enableTwoFactor updates twoFactor fields", async () => {
-		await enableTwoFactor(5, "secret");
-		expect(mockDb.run).toHaveBeenCalledWith("UPDATE users SET twoFactorEnabled = 1, twoFactorSecret = ? WHERE id = ?", "secret", 5);
-	});
-
-	describe("updateUserPassword", () => {
-		const userRec = { id: 1, password: "oldhash" } as any;
-
-		test("throws when user not found", async () => {
-			mockDb.get.mockResolvedValue(undefined);
-			await expect(updateUserPassword(1, "x", "y")).rejects.toThrow("User not found");
-		});
-
-		test("throws when current password is wrong", async () => {
-			mockDb.get.mockResolvedValue(userRec);
-			(bcrypt.compare as jest.Mock).mockResolvedValue(false);
-			await expect(updateUserPassword(1, "x", "y")).rejects.toThrow("Current password is incorrect");
-		});
-
-		test("updates password when compare passes", async () => {
-			mockDb.get.mockResolvedValue(userRec);
-			(bcrypt.compare as jest.Mock).mockResolvedValue(true);
-			(bcrypt.hash as jest.Mock).mockResolvedValue("newhash");
-			await updateUserPassword(1, "x", "y");
-			expect(bcrypt.hash).toHaveBeenCalledWith("y", 10);
-			expect(mockDb.run).toHaveBeenCalledWith("UPDATE users SET password = ? WHERE id = ?", "newhash", 1);
-		});
-	});
-
-	test("deleteUser calls db.run with DELETE", async () => {
-		await deleteUser(3);
-		expect(mockDb.run).toHaveBeenCalledWith("DELETE FROM users WHERE id = ?", 3);
-	});
+test("deleteUser calls db.run with DELETE", async () => {
+	await userService.deleteUser(9);
+	expect(mockDb.run).toHaveBeenCalledWith(`DELETE FROM users WHERE id = ?`, 9);
 });
