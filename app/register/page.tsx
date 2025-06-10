@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { isValidPassword } from "lib/validation";
 
 export default function Register() {
 	const router = useRouter();
@@ -9,6 +10,7 @@ export default function Register() {
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [error, setError] = useState("");
 	const [message, setMessage] = useState("");
+	const [fullName, setFullName] = useState("");
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
@@ -16,21 +18,24 @@ export default function Register() {
 		setMessage("");
 
 		// Validate inputs
-		if (!username || !password || !confirmPassword) {
+		if (!username || !password || !confirmPassword || !fullName) {
 			setError("All fields are required.");
+			return;
+		}
+		if (!isValidPassword(password)) {
+			setError("Password must be 8+ chars, include an uppercase letter, a number & a special character.");
 			return;
 		}
 		if (password !== confirmPassword) {
 			setError("Passwords do not match.");
 			return;
 		}
-		// Optional: enforce stronger password requirements here
 
 		try {
 			const res = await fetch("/api/auth/register", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ username, password }),
+				body: JSON.stringify({ username, password, fullName }),
 			});
 
 			const data = await res.json();
@@ -38,7 +43,6 @@ export default function Register() {
 				setError(data.message || "Something went wrong.");
 			} else {
 				setMessage("Registration successful! Redirecting...");
-				// Redirect to login or home page after a short delay
 				setTimeout(() => {
 					router.push("/login");
 				}, 1500);
@@ -53,21 +57,26 @@ export default function Register() {
 			<h1>Register</h1>
 			<form onSubmit={handleSubmit}>
 				<div style={{ marginBottom: "1rem" }}>
-					<label htmlFor="username">Username</label>
+					<label htmlFor="fullName">Full Name</label>
 					<br />
-					<input type="text" id="username" value={username} onChange={(e) => setUsername(e.target.value)} required style={{ width: "100%", padding: "0.5rem" }} />
+					<input type="text" id="fullName" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} required style={{ width: "100%", padding: "0.5rem" }} />
+				</div>
+				<div style={{ marginBottom: "1rem" }}>
+					<label htmlFor="username">Email</label>
+					<br />
+					<input type="email" id="username" placeholder="example@example.com" value={username} onChange={(e) => setUsername(e.target.value)} required style={{ width: "100%", padding: "0.5rem" }} />
 				</div>
 
 				<div style={{ marginBottom: "1rem" }}>
 					<label htmlFor="password">Password</label>
 					<br />
-					<input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: "100%", padding: "0.5rem" }} />
+					<input type="password" placeholder="Enter your password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: "100%", padding: "0.5rem" }} />
 				</div>
 
 				<div style={{ marginBottom: "1rem" }}>
 					<label htmlFor="confirmPassword">Confirm Password</label>
 					<br />
-					<input type="password" id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required style={{ width: "100%", padding: "0.5rem" }} />
+					<input type="password" placeholder="Confirm your password" id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required style={{ width: "100%", padding: "0.5rem" }} />
 				</div>
 
 				{error && <p style={{ color: "red" }}>{error}</p>}

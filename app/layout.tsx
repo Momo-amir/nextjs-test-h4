@@ -1,4 +1,4 @@
-import { NavigationMenu } from "./component/navigationMenu";
+import { NavigationMenu } from "./components/navigationMenu";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (

@@ -13,8 +13,12 @@ export async function connectToDatabase(): Promise<Database> {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'user'
+            fullName TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user',
+            twoFactorEnabled BOOLEAN NOT NULL DEFAULT 0,
+            twoFactorSecret TEXT
         );
     `);
+
 	return db;
 }

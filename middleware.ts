@@ -1,40 +1,38 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getUserRoleFromToken } from "./lib/auth";
+import { withAuth } from "next-auth/middleware";
 
-export function middleware(request: NextRequest) {
-	const { pathname } = request.nextUrl;
+const PUBLIC_PATHS = [
+	"/login",
+	"/register",
+	"/unauthorized",
+	"/api/auth", // allow all NextAuth endpoints
+];
 
-	// 1) Skip auth checks on public routes:
-	const publicPaths = ["/login", "/register", "/api/auth/login", "/api/auth/register", "/favicon.ico"];
-	if (publicPaths.some((path) => pathname.startsWith(path))) {
-		return NextResponse.next();
-	}
+export default withAuth({
+	callbacks: {
+		authorized({ token, req }) {
+			const { pathname } = req.nextUrl;
 
-	// 2) Check for token cookie:
-	const token = request.cookies.get("auth_token")?.value;
-	if (!token) {
-		console.warn("No auth token found, redirecting to login");
-		return NextResponse.redirect(new URL("/login", request.url));
-	}
+			// 1) let public pages and NextAuth API routes through
+			if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+				return true;
+			}
 
-	// // 3) Validate & extract role:
-	// const role = getUserRoleFromToken(token);
-	// if (!role) {
-	// 	console.log("Invalid auth role, redirecting to login");
-	// 	return NextResponse.redirect(new URL("/login", request.url));
-	// }
+			// 2) require a token for everything else
+			if (!token) {
+				return false;
+			}
 
-	// // 4) Protect admin area:
-	// if (pathname.startsWith("/admin") && role !== "admin") {
-	// 	return NextResponse.redirect(new URL("/unauthorized", request.url));
-	// }
+			// 3) enforce admin-only routes under /admin
+			if (pathname.startsWith("/admin") && token.role !== "admin") {
+				return false;
+			}
 
-	// 5) Allow through
-	return NextResponse.next();
-}
+			return true;
+		},
+	},
+});
 
-// Optionally only run this middleware on non-static routes:
+// only run this middleware on all non-API, non-_next, non-image routes:
 export const config = {
-	matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+	matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
