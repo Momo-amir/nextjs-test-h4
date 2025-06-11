@@ -7,7 +7,7 @@ export async function connectToDatabase(): Promise<Database> {
 		driver: sqlite3.Database,
 	});
 
-	// Create users table if it doesn't exist, adding a role column.
+	// Create users table if it doesn't exist
 	await db.exec(`
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
