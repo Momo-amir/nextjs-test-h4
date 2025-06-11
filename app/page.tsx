@@ -22,9 +22,7 @@ export default async function Page() {
 			<p>
 				<strong>Role:</strong> {session.user.role}
 			</p>
-			<div>
-				<Setup2FA />
-			</div>
+			<div>{session.user.twoFactorEnabled ? <p>Two-factor authentication is enabled.</p> : <Setup2FA />}</div>
 		</div>
 	);
 }

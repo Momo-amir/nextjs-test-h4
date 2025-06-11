@@ -1,11 +1,31 @@
 module.exports = {
 	reactStrictMode: true,
-	// expose JWT_SECRET (and any other non-public vars) to Edge Runtimes
 	env: {
 		JWT_SECRET: process.env.JWT_SECRET,
 		CLIENT_ID: process.env.CLIENT_ID,
 		CLIENT_SECRET: process.env.CLIENT_SECRET,
 	},
+
+	// 1) HTTPS-redirect - not working as intended
+	async redirects() {
+		return [
+			{
+				source: "/:path*",
+				has: [
+					{
+						type: "header",
+						key: "x-forwarded-proto",
+						value: "http",
+					},
+				],
+				permanent: true,
+				destination: "https://:path*",
+			},
+		];
+	},
+
+	// 2) Security headers
+	// TODO: This is a basic setup from nextjs documentation. - For real applications, review strategy for project specific needs.
 	async headers() {
 		return [
 			{

@@ -7,6 +7,7 @@ declare module "next-auth" {
 			username: string;
 			role: string;
 			name: string; // ← standard NextAuth name field
+			twoFactorEnabled: boolean;
 		};
 	}
 	interface User {
@@ -14,6 +15,7 @@ declare module "next-auth" {
 		username: string;
 		role: string;
 		name: string; // ← likewise
+		twoFactorEnabled: boolean;
 	}
 }
 

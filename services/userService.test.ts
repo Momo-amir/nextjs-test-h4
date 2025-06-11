@@ -4,11 +4,11 @@ import { compare, hash } from "bcryptjs";
 
 import * as userService from "../services/userService";
 
-// mock sqlite connection
+// mock sqlite connection - this is a fake in-memory DB
 jest.mock("../lib/db", () => ({
 	connectToDatabase: jest.fn(),
 }));
-// mock bcrypt methods
+// mock bcrypt methods - we don't want to actually hash passwords in tests because it would be slow and unnecessary
 jest.mock("bcryptjs", () => ({
 	compare: jest.fn(),
 	hash: jest.fn(),
@@ -19,7 +19,7 @@ const mockDb: Partial<Database> = {
 	get: jest.fn(),
 	run: jest.fn(),
 };
-
+// before each test, reset the mock DB and connectToDatabase so we get a fresh instance
 beforeEach(() => {
 	jest.clearAllMocks();
 	(connectToDatabase as jest.Mock).mockResolvedValue(mockDb as Database);
@@ -47,12 +47,16 @@ test("createUser inserts and returns lastID", async () => {
 });
 
 test("countUsers returns count from db", async () => {
-	(mockDb.get as jest.Mock).mockResolvedValue({ count: 7 });
-	const cnt = await userService.countUsers();
-	expect(mockDb.get).toHaveBeenCalledWith("SELECT COUNT(*) AS count FROM users");
-	expect(cnt).toBe(7);
+	(mockDb.get as jest.Mock).mockResolvedValue({ count: 7 }); // mock the count result
+	const cnt = await userService.countUsers(); // we call the countUsers function that we use to check if we should create an admin user
+	expect(mockDb.get).toHaveBeenCalledWith("SELECT COUNT(*) AS count FROM users"); // should query the count
+	expect(cnt).toBe(7); // should return the count from the mock
 });
 
+// Test for getUserById.
+// This function is a later implementation, I realized that I had only been using getUserByUsername.
+// In a real project I would use this for a lot of what I use getUserByUsername for.
+// I used the other because it was easy to use since I had to check usernames for uniqueness on registration.
 test("getUserById queries correct fields", async () => {
 	const fake = {
 		id: 2,
@@ -81,6 +85,7 @@ test("enableTwoFactor updates twoFactor fields", async () => {
 	expect(mockDb.run).toHaveBeenCalledWith(`UPDATE users SET twoFactorEnabled = 1, twoFactorSecret = ? WHERE id = ?`, "SECRET123", 5);
 });
 
+// Tests for updateUserPassword actually not yet implemented in the frontend as of yet
 describe("updateUserPassword", () => {
 	const userRec = { id: 3, password: "oldHash" };
 
