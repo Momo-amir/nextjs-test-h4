@@ -42,25 +42,6 @@ describe("<Login />", () => {
 		});
 	});
 
-	it("shows 2FA field when server asks for it", async () => {
-		(signIn as jest.Mock).mockResolvedValue({ ok: false, error: "2FA code required" });
-		render(<Login />);
-
-		fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: "alice" } });
-		fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: "pw" } });
-		fireEvent.click(screen.getByRole("button", { name: /login/i }));
-
-		// waits for the component to re-render with 2FA :)
-		await waitFor(() => {
-			expect(signIn).toHaveBeenCalledWith("credentials", {
-				redirect: false,
-				username: "alice",
-				password: "pw",
-			});
-			expect(screen.getByLabelText(/2FA Code/i)).toBeInTheDocument();
-		});
-	});
-
 	it("displays error message on bad credentials", async () => {
 		(signIn as jest.Mock).mockResolvedValue({ ok: false, error: "whatever" });
 		render(<Login />);

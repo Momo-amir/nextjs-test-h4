@@ -41,7 +41,7 @@ export const authOptions: NextAuthOptions = {
 			authorization: {
 				params: {
 					prompt: "select_account",
-					access_type: "offline", // if you also need refresh tokens
+					access_type: "offline", // to get refresh token
 					response_type: "code",
 				},
 			},
