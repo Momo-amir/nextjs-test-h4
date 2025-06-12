@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`app/admin/page.tsx returns a React element when user is admin 1`] = `
+<div>
+  <h1>
+    Admin Page - here are the nuke codes! 123411
+  </h1>
+</div>
+`;

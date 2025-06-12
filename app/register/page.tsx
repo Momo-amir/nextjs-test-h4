@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { isValidPassword } from "lib/validation";
+import Link from "next/link";
 
 export default function Register() {
 	const router = useRouter();
@@ -53,39 +54,54 @@ export default function Register() {
 	};
 
 	return (
-		<div style={{ maxWidth: "400px", margin: "0 auto", padding: "2rem" }}>
-			<h1>Register</h1>
-			<form onSubmit={handleSubmit}>
-				<div style={{ marginBottom: "1rem" }}>
-					<label htmlFor="fullName">Full Name</label>
-					<br />
-					<input type="text" id="fullName" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} required style={{ width: "100%", padding: "0.5rem" }} />
+		<div className="hero bg-base-200 min-h-screen">
+			<div className="hero-content flex-col ">
+				<div className="text-center ">
+					<h1 className="text-5xl font-bold">Register now!</h1>
+					<p className="py-6">Create your account to get started.</p>
 				</div>
-				<div style={{ marginBottom: "1rem" }}>
-					<label htmlFor="username">Email</label>
-					<br />
-					<input type="email" id="username" placeholder="example@example.com" value={username} onChange={(e) => setUsername(e.target.value)} required style={{ width: "100%", padding: "0.5rem" }} />
+				<div className="card bg-base-100 w-full max-w-sm shadow-2xl">
+					<div className="card-body">
+						<form onSubmit={handleSubmit}>
+							<fieldset className="space-y-4">
+								<label htmlFor="fullName" className="label">
+									<span className="label-text">Full Name</span>
+								</label>
+								<input id="fullName" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="input input-bordered w-full" />
+
+								<label htmlFor="username" className="label">
+									<span className="label-text">Email</span>
+								</label>
+								<input id="username" type="email" value={username} onChange={(e) => setUsername(e.target.value)} required className="input input-bordered w-full" />
+
+								<label htmlFor="password" className="label">
+									<span className="label-text">Password</span>
+								</label>
+								<input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="input input-bordered w-full" />
+
+								<label htmlFor="confirmPassword" className="label">
+									<span className="label-text">Confirm Password</span>
+								</label>
+								<input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="input input-bordered w-full" />
+
+								{error && <p className="text-red-500">{error}</p>}
+								{message && <p className="text-green-500">{message}</p>}
+
+								<button type="submit" className="btn btn-neutral w-full mt-4">
+									Register
+								</button>
+							</fieldset>
+						</form>
+
+						<p className="text-center mt-4">
+							Already have an account?{" "}
+							<Link href="/login" className="link link-primary">
+								Login
+							</Link>
+						</p>
+					</div>
 				</div>
-
-				<div style={{ marginBottom: "1rem" }}>
-					<label htmlFor="password">Password</label>
-					<br />
-					<input type="password" placeholder="Enter your password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: "100%", padding: "0.5rem" }} />
-				</div>
-
-				<div style={{ marginBottom: "1rem" }}>
-					<label htmlFor="confirmPassword">Confirm Password</label>
-					<br />
-					<input type="password" placeholder="Confirm your password" id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required style={{ width: "100%", padding: "0.5rem" }} />
-				</div>
-
-				{error && <p style={{ color: "red" }}>{error}</p>}
-				{message && <p style={{ color: "green" }}>{message}</p>}
-
-				<button type="submit" style={{ padding: "0.5rem 1rem" }}>
-					Register
-				</button>
-			</form>
+			</div>
 		</div>
 	);
 }

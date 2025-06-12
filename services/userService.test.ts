@@ -14,7 +14,7 @@ jest.mock("bcryptjs", () => ({
 	hash: jest.fn(),
 }));
 
-// our fake sqlite DB
+// our fake sqlite DB - the Partial is due to get and run
 const mockDb: Partial<Database> = {
 	get: jest.fn(),
 	run: jest.fn(),

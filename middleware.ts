@@ -1,4 +1,5 @@
 import { withAuth } from "next-auth/middleware";
+import { redirect } from "next/dist/server/api-utils";
 import { NextRequest, NextResponse } from "next/server";
 
 const PUBLIC_PATHS = [
@@ -20,11 +21,6 @@ export default withAuth({
 
 			// 2) require a token for everything else
 			if (!token) {
-				return false;
-			}
-
-			// 3) enforce admin-only routes under /admin
-			if (pathname.startsWith("/admin") && token.role !== "admin") {
 				return false;
 			}
 

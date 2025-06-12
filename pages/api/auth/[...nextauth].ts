@@ -25,7 +25,7 @@ export const authOptions: NextAuthOptions = {
 					if (!valid) throw new Error("Invalid 2FA code");
 				}
 
-				// return must include { id, username, role, name }
+				// return must include { id, username, role, name and twoFactorEnabled to match session.user type
 				return {
 					id: user.id.toString(),
 					username: user.username,
@@ -60,7 +60,7 @@ export const authOptions: NextAuthOptions = {
 				token.username = user.username;
 				token.role = user.role;
 				token.name = (user as any).name; // Name from credentials flow
-				token.twoFactorEnabled = user.twoFactorEnabled ? true : false; // ensure boolean
+				token.twoFactorEnabled = user.twoFactorEnabled ? true : false;
 			}
 			// for Google, user object comes from profile only on initial sign in - this is where we map the profile fields to the token
 			if (account?.provider === "google" && profile) {
@@ -91,9 +91,9 @@ export const authOptions: NextAuthOptions = {
 				username: token.username as string,
 				role: token.role as string,
 				name: token.name as string,
-				twoFactorEnabled: token.twoFactorEnabled ? true : false, // ensure boolean
+				twoFactorEnabled: token.twoFactorEnabled ? true : false, // ensure boolean because it comes from JWT
 			};
-			console.log("👤 Session callback, session.user is:", session.user);
+			// console.log("👤 Session callback, session.user is:", session.user);
 			return session;
 		},
 	},

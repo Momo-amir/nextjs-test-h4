@@ -17,18 +17,22 @@ export default function Setup2FA() {
 	}
 
 	return (
-		<div style={{ maxWidth: 400, margin: "2rem auto" }}>
-			<h1>Enable Two‐Factor Authentication</h1>
+		<div className="card bg-base-100 shadow-lg mx-auto my-8 p-6 max-w-sm">
+			<h1 className="text-xl font-bold mb-4">Enable Two‐Factor Authentication</h1>
+
 			{!qr ? (
-				<button onClick={handleSetup}>Generate QR Code</button>
+				<button onClick={handleSetup} className="btn btn-neutral w-full">
+					Generate QR Code
+				</button>
 			) : (
 				<>
-					<p>Scan this with your authenticator app:</p>
-					<img src={qr} alt="2FA QR Code" />
-					<p>Then enter one code on your login form to verify.</p>
+					<p className="mb-4">Scan this with your authenticator app:</p>
+					<img src={qr} alt="2FA QR Code" className="mx-auto mb-4 w-48 h-48" />
+					<p className="mb-2">Then enter one code on your login form to verify.</p>
 				</>
 			)}
-			{err && <p style={{ color: "red" }}>{err}</p>}
+
+			{err && <p className="text-red-500 mt-2">{err}</p>}
 		</div>
 	);
 }
